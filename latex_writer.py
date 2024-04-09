@@ -1,3 +1,4 @@
+import xml.etree.ElementTree as ET
 from io import BytesIO
 import cairosvg
 import subprocess
@@ -15,7 +16,7 @@ default_latex="""
 \\usepackage{mathrsfs}
 \\linespread{1}
 \\begin{document}
-$\\frac{a+b}{c}$
+$2+2$
 \\end{document}
 """.strip()
 
@@ -42,11 +43,34 @@ def create_svg(svg_file, tmp_folder):
         stderr=subprocess.DEVNULL)
     p.wait()
 
+def process_svg(svg_file):
+    # add padding
+    tree = ET.parse(svg_file)
+    root = tree.getroot()
+
+    x, y, width, height = [float(n) for n in root.attrib['viewBox'].split(" ")]
+    
+    # 1%
+    x_padding = width*.01
+    y_padding = height*.01
+
+    x-=x_padding
+    y-=y_padding
+    width+=x_padding*2
+    height+=y_padding*2
+    
+    root.attrib['width'] = f"{width}pt"
+    root.attrib['height'] = f"{height}pt"
+    root.attrib['viewBox'] = f"{x} {y} {width} {height}"
+
+    tree.write(svg_file)
+
 def render_latex(latex, folder):
     svg = f"{folder}/ltx.svg"
 
     create_latex(latex, folder)
     create_svg(svg, folder)
+    process_svg(svg)
 
     background_color = "#323337"
 
